@@ -1,7 +1,6 @@
 package monitoring
 
 import atomic.Atomic
-import java.util.UUID
 import akka.dispatch.Future
 
 case class Timer(time : () => Long = () =>  System.currentTimeMillis()) {
