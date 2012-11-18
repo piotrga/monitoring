@@ -21,4 +21,4 @@
       [  1004 ms]  Fetching guardian.com - future DONE in [1000 ms]
       [  1005 ms]  Fetching bbc.co.uk - future START
     Unfinished futures:
-      Fetching bbc.co.uk - started on [1005 ms] [114 ms] ago  }
+      Fetching bbc.co.uk - started on [1005 ms] [114 ms] ago
