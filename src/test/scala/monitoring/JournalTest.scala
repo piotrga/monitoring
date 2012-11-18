@@ -65,7 +65,7 @@ class JournalTest extends FreeSpec with MustMatchers{
   }
 
 
-  "Demo" in {
+  "Demo" ignore {
     implicit val journal = Journal()
     val allTogetger = for {
       guardian <- Future{Source.fromInputStream(new URL("http://www.guardian.com").openStream())} as "Fetching guardian.com"
