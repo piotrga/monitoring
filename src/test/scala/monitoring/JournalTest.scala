@@ -70,21 +70,22 @@ class JournalTest extends FreeSpec with MustMatchers{
     val allTogetger = for {
       guardian <- Future{Source.fromInputStream(new URL("http://www.guardian.com").openStream())} as "Fetching guardian.com"
       bbc <- Future{Source.fromInputStream(new URL("http://www.bbc.co.uk").openStream())} as "Fetching bbc.co.uk"
-    } yield(bbc.getLines() ++ guardian.getLines())
+      nytimes <- Future{Source.fromInputStream(new URL("http://www.nytimes.com").openStream())} as "Fetching nytimes.com"
+    } yield(bbc.getLines().toList ++ guardian.getLines().toList ++ nytimes.getLines().toList)
 
     {
-      val lines = Await.result(allTogetger, 3000 millis)
+      val lines = Await.result(allTogetger, 1100 millis)
       val linesWithObama = lines filter (_.contains("Obama")) mkString ("\n") as "Grepping lines"
       println(linesWithObama)
     } onErrorLog (System.err, "Grepping for 'Obama'")
 
     println(journal.mkString)
 
-// Example output:
-//    Error [Futures timed out after [100] milliseconds] while executing [Grepping for 'Obama']
+//    Error [Futures timed out after [1100] milliseconds] while executing [Grepping for 'Obama']
 //    Log:
-//    [     5 ms]  Fetching guardian.com - future START
-//      Unfinished futures:
-//      Fetching guardian.com - started on [5 ms] [114 ms] ago
-  }
+//      [     5 ms]  Fetching guardian.com - future START
+//      [  1004 ms]  Fetching guardian.com - future DONE in [1000 ms]
+//      [  1005 ms]  Fetching bbc.co.uk - future START
+//    Unfinished futures:
+//      Fetching bbc.co.uk - started on [1005 ms] [114 ms] ago  }
 }
