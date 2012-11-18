@@ -68,15 +68,15 @@ class JournalTest extends FreeSpec with MustMatchers{
   "Demo" in {
     implicit val journal = Journal()
     val allTogetger = for {
-      gazeta <- Future{Source.fromInputStream(new URL("http://www.guardian.com").openStream())} as "Fetching guardian.com"
+      guardian <- Future{Source.fromInputStream(new URL("http://www.guardian.com").openStream())} as "Fetching guardian.com"
       bbc <- Future{Source.fromInputStream(new URL("http://www.bbc.co.uk").openStream())} as "Fetching bbc.co.uk"
-    } yield(bbc.getLines() ++ gazeta.getLines())
+    } yield(bbc.getLines() ++ guardian.getLines())
 
     {
       val lines = Await.result(allTogetger, 3000 millis)
       val linesWithObama = lines filter (_.contains("Obama")) mkString ("\n") as "Grepping lines"
       println(linesWithObama)
-    } reportIfFails (System.err, "Grepping for 'Obama'")
+    } onErrorLog (System.err, "Grepping for 'Obama'")
 
     println(journal.mkString)
 

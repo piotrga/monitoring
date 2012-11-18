@@ -30,8 +30,14 @@ package object monitoring {
 
   implicit def JournaledBlock[T](f: => T)(implicit journal : Journal) = new {
     def as(msg : String) = journal(msg)(f)
-    def reportIfFails[T, LOG <% { def error(msg: String, ex: Throwable) : Unit}](log : LOG, description:String = "operation") = journal.reportIfFails(log, description)(f)
-    def reportIfFails[T](description:String = "operation")(implicit log : { def error(msg: String, ex: Throwable) : Unit}) = journal.reportIfFails(log, description)(f)
+    def onErrorLog[T, LOG <% { def error(msg: String, ex: Throwable) : Unit}](log : LOG, description:String = "operation") = journal.reportIfFails(log, description)(f)
+//    def reportIfFails[T](description:String = "operation")(implicit log : { def error(msg: String, ex: Throwable) : Unit}) = journal.reportIfFails(log, description)(f)
+  }
+
+  object DevNull extends Journal{
+    override def info(message: => String) {  }
+    override def apply[T](description: String, future: => Future[T]) = future
+    override def apply[T](description: String)(f: => T) = f
   }
 
 }
