@@ -80,12 +80,12 @@ class JournalTest extends FreeSpec with MustMatchers{
     } onErrorLog (System.err, "Grepping for 'Obama'")
 
     println(journal.mkString)
-
-//    Error [Futures timed out after [1100] milliseconds] while executing [Grepping for 'Obama']
-//    Log:
-//      [     5 ms]  Fetching guardian.com - future START
-//      [  1004 ms]  Fetching guardian.com - future DONE in [1000 ms]
-//      [  1005 ms]  Fetching bbc.co.uk - future START
-//    Unfinished futures:
-//      Fetching bbc.co.uk - started on [1005 ms] [114 ms] ago  }
+  }
+  //    Error [Futures timed out after [1100] milliseconds] while executing [Grepping for 'Obama']
+  //    Log:
+  //      [     5 ms]  Fetching guardian.com - future START
+  //      [  1004 ms]  Fetching guardian.com - future DONE in [1000 ms]
+  //      [  1005 ms]  Fetching bbc.co.uk - future START
+  //    Unfinished futures:
+  //      Fetching bbc.co.uk - started on [1005 ms] [114 ms] ago  }
 }
