@@ -44,8 +44,10 @@ class MovingValue(clock: () => Long = System.currentTimeMillis, keepSeconds: Int
     val atSeconds = atMillis / 1000
     val now = NOW()
     if ( atSeconds>= started && atSeconds > now - keepSeconds && atSeconds <= now ){
-      val i = (atMillis % N).toInt
+      val i = (atSeconds % N).toInt
       buff(i).update(atSeconds, sample)
+    } else {
+      println("[%d] dropping sample for [%d] - it must be too old" format(now, atSeconds))
     }
   }
 
