@@ -40,9 +40,7 @@ class MovingValueTest extends  FreeSpec with MustMatchers{
     var time = 12000345
     val stats = new MovingValue(() => time)
 
-    stats.record(1)
-    stats.record(1)
-    stats.record(3)
+    stats.record(2)
     time +=1000
     stats.record(3)
     time +=1000
