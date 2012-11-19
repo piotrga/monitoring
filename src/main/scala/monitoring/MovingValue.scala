@@ -9,8 +9,8 @@ private[monitoring] class Cell{
   private var epoch:Long = 0
   private var totalValue:Double = 0
   private var sampleCount: Long = 0
-  private var max: Double = 0
-  private var min: Double = 0
+  private var max: Double = Int.MinValue
+  private var min: Double = Int.MaxValue
 
   def update(now : Long, sample : Double){
     synchronized{
@@ -51,11 +51,18 @@ class MovingValue(clock: () => Long = System.currentTimeMillis, keepSeconds: Int
     buff.map(_.snapshot).filter(_.epoch > cutoff)
   }
 
-  def max = snapshot.map(_.max).max
-  def maxPerSecond = snapshot.map(_.total).max
+  def max = snapshot.map(_.max).foldLeft(0d)(math.max)
+  def maxPerSecond = snapshot.map(_.total).foldLeft(0d)(math.max)
 
-  def min = snapshot.map(_.min).min
-  def minPerSecond = snapshot.map(_.total).min
+  def min = snapshot match {
+    case s if s.isEmpty => 0d
+    case s => s map(_.min) min
+  }
+
+  def minPerSecond = snapshot match {
+    case s if s.isEmpty => 0d
+    case s => s map(_.total) min
+  }
 
   def sampleCount = snapshot.map(_.sampleCount).sum
   def total = snapshot.map(_.total).sum
@@ -67,7 +74,7 @@ class MovingValue(clock: () => Long = System.currentTimeMillis, keepSeconds: Int
   }
 
   def averagePerSecond: Double = {
-    val secondsMeasured = math.min (started - NOW(), keepSeconds)
+    val secondsMeasured = math.min (NOW() - started, keepSeconds)
     if (secondsMeasured > 0 )
       total / secondsMeasured
     else
