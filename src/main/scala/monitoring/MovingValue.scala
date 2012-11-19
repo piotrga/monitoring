@@ -30,12 +30,12 @@ private[monitoring] class Cell{
   def snapshot : Stats = synchronized{ Stats(epoch, totalValue, count, max, min) }
 }
 
-class MovingValue(clock: {def currentTimeMillis: Long } = System, keepSeconds: Int = 60){
+class MovingValue(clock: () => Long = System.currentTimeMillis, keepSeconds: Int = 60){
 
   val N : Int = keepSeconds
   val buff = Array.fill(N)(new Cell)
 
-  private def NOW() = clock.currentTimeMillis / 1000
+  private def NOW() = clock() / 1000
 
   def record(sample: Double){
     val now = NOW()
