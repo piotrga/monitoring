@@ -1,25 +1,25 @@
 package monitoring
 
-private[monitoring] case class Stats( epoch:Long, value:Double, count: Long, max: Double, min: Double )
+private[monitoring] case class Stats( epoch:Long, total:Double, sampleCount: Long, max: Double, min: Double )
 
 private[monitoring] class Cell{
   // These fields are mutable to avoid garbage collection due to duration monitoring
   private var epoch:Long = 0
   private var totalValue:Double = 0
-  private var count: Long = 0
+  private var sampleCount: Long = 0
   private var max: Double = 0
   private var min: Double = 0
 
   def update(now : Long, sample : Double){
     synchronized{
       if (epoch == now){
-        count += 1
+        sampleCount += 1
         totalValue += sample
         if (max < sample) max = sample
         if (min > sample) min = sample
       }else{
         epoch = now
-        count = 1
+        sampleCount = 1
         totalValue = sample
         max = sample
         min = sample
@@ -27,7 +27,7 @@ private[monitoring] class Cell{
     }
   }
 
-  def snapshot : Stats = synchronized{ Stats(epoch, totalValue, count, max, min) }
+  def snapshot : Stats = synchronized{ Stats(epoch, totalValue, sampleCount, max, min) }
 }
 
 class MovingValue(clock: () => Long = System.currentTimeMillis, keepSeconds: Int = 60){
@@ -50,10 +50,11 @@ class MovingValue(clock: () => Long = System.currentTimeMillis, keepSeconds: Int
 
   def max = snapshot.map(_.max).max
   def min = snapshot.map(_.min).min
-  def count = snapshot.map(_.count).sum
+  def sampleCount = snapshot.map(_.sampleCount).sum
+  def total = snapshot.map(_.total).sum
 
   def average : Double = {
-    val (duration, count) = snapshot.foldLeft((0d,0d)){case((totalDuration, totalCount),c) => (totalDuration+c.value, totalCount+c.count)}
+    val (duration, count) = snapshot.foldLeft((0d,0d)){case((totalDuration, totalCount),c) => (totalDuration+c.total, totalCount+c.sampleCount)}
     if (count == 0) 0L
     else duration/count
   }
