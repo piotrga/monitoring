@@ -40,10 +40,13 @@ class MovingValue(clock: () => Long = System.currentTimeMillis, keepSeconds: Int
 
   private def NOW() = clock() / 1000
 
-  def record(sample: Double){
+  def record(sample: Double, atMillis : Long = clock()){
+    val atSeconds = atMillis / 1000
     val now = NOW()
-    val i = (now % N).toInt
-    buff(i).update(now, sample)
+    if ( atSeconds>= started && atSeconds > now - keepSeconds && atSeconds <= now ){
+      val i = (atMillis % N).toInt
+      buff(i).update(atMillis, sample)
+    }
   }
 
   private def snapshot = {
