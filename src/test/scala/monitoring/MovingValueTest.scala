@@ -76,5 +76,26 @@ class MovingValueTest extends  FreeSpec with MustMatchers{
     "averagePerSecond" in { stats.averagePerSecond must be(2.5) }
   }
 
+  "Drops values beyond the window" - {
+    var time = 100000
+    val stats = new MovingValue(() => time, keepSeconds = 5)
+
+    stats.record(2)
+    time += 60000
+    stats.record(1, time - 400)
+    stats.record(1, time - 300)
+    stats.record(1, time - 150)
+
+    "min" in { stats.min must be(1) }
+    "max" in { stats.max must be(1) }
+    "average" in { stats.average must be(1) }
+    "total" in { stats.total must be(3) }
+    "sampleCount" in { stats.sampleCount must be(3) }
+
+    "maxPerSecond" in { stats.maxPerSecond must be(3) }
+    "minPerSecond" in { stats.minPerSecond must be(3) }
+    "averagePerSecond" in { stats.averagePerSecond must be(0.6) }
+  }
+
   
 }

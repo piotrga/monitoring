@@ -45,7 +45,7 @@ class MovingValue(clock: () => Long = System.currentTimeMillis, keepSeconds: Int
     val now = NOW()
     if ( atSeconds>= started && atSeconds > now - keepSeconds && atSeconds <= now ){
       val i = (atMillis % N).toInt
-      buff(i).update(atMillis, sample)
+      buff(i).update(atSeconds, sample)
     }
   }
 
