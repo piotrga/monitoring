@@ -11,6 +11,12 @@ case class Timer(time : () => Long = () =>  System.currentTimeMillis()) {
 
 object Timer{
   def apply(relativeTo : Timer) : Timer = Timer(()=> System.currentTimeMillis() - relativeTo.start)
+
+  def time[T]( f: => T) : (T, Long)  ={
+    val t = Timer()
+    val res = f
+    (res, t.duration)
+  }
 }
 
 sealed trait MsgType{
