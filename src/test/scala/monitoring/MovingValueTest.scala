@@ -2,9 +2,10 @@ package monitoring
 
 import org.scalatest.FreeSpec
 import org.scalatest.matchers.MustMatchers
+import java.lang.Thread
 
 class MovingValueTest extends  FreeSpec with MustMatchers{
- 
+
   "Empty stats calculate " - {
     val empty = new MovingValue()
 
@@ -20,10 +21,13 @@ class MovingValueTest extends  FreeSpec with MustMatchers{
   }
 
   "The same second stats" - {
-    val stats = new MovingValue(() => 12000345)
+    var time = 12000345
+    val stats = new MovingValue(() => time)
 
     stats.record(2)
+    time += 500
     stats.record(3)
+
 
     "min" in { stats.min must be(2) }
     "max" in { stats.max must be(3) }
@@ -33,17 +37,18 @@ class MovingValueTest extends  FreeSpec with MustMatchers{
 
     "maxPerSecond" in { stats.maxPerSecond must be(5) }
     "minPerSecond" in { stats.minPerSecond must be(5) }
-    "averagePerSecond" in { stats.averagePerSecond must be(0) }
+    "averagePerSecond" in { stats.averagePerSecond must be(5 * 2) }
   }
 
   "As the time passes keeps data per second" - {
     var time = 12000345
     val stats = new MovingValue(() => time)
 
+    time += 100000
     stats.record(2)
-    time +=1000
+    time += 1000
     stats.record(3)
-    time +=1000
+    time += 9000
 
 
     "min" in { stats.min must be(2) }
@@ -54,7 +59,7 @@ class MovingValueTest extends  FreeSpec with MustMatchers{
 
     "maxPerSecond" in { stats.maxPerSecond must be(3) }
     "minPerSecond" in { stats.minPerSecond must be(2) }
-    "averagePerSecond" in { stats.averagePerSecond must be(2.5) }
+    "averagePerSecond" in { stats.averagePerSecond must be(5d/60) }
   }
 
   "Can record events in the past" - {
@@ -64,6 +69,7 @@ class MovingValueTest extends  FreeSpec with MustMatchers{
     stats.record(2, 100000)
     time += 2000
     stats.record(3, 101000)
+    time += 100 // to check if averagePerSecond picks it up
 
     "min" in { stats.min must be(2) }
     "max" in { stats.max must be(3) }
@@ -73,7 +79,7 @@ class MovingValueTest extends  FreeSpec with MustMatchers{
 
     "maxPerSecond" in { stats.maxPerSecond must be(3) }
     "minPerSecond" in { stats.minPerSecond must be(2) }
-    "averagePerSecond" in { stats.averagePerSecond must be(2.5) }
+    "averagePerSecond" in { stats.averagePerSecond must be(5d/2.1) }
   }
 
   "Drops values beyond the window" - {
@@ -97,5 +103,4 @@ class MovingValueTest extends  FreeSpec with MustMatchers{
     "averagePerSecond" in { stats.averagePerSecond must be(0.6) }
   }
 
-  
 }

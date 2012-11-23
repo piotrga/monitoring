@@ -37,6 +37,7 @@ class MovingValue(clock: () => Long = System.currentTimeMillis, keepSeconds: Int
   val N : Int = keepSeconds
   val buff = Array.fill(N)(new Cell)
   val started = NOW()
+  val startedMillis = clock()
 
   private def NOW() = clock() / 1000
 
@@ -79,7 +80,7 @@ class MovingValue(clock: () => Long = System.currentTimeMillis, keepSeconds: Int
   }
 
   def averagePerSecond: Double = {
-    val secondsMeasured = math.min (NOW() - started, keepSeconds)
+    val secondsMeasured = math.min ((clock() - startedMillis) /1000d, keepSeconds)
     if (secondsMeasured > 0 )
       total / secondsMeasured
     else
