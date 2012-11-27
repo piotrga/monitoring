@@ -6,7 +6,8 @@ scalaVersion := "2.9.2"
 
 // Libraries
 libraryDependencies ++= Seq(    
-    "com.typesafe.akka" % "akka-actor" % "2.0" % "provided"
+    "com.typesafe.akka" % "akka-actor" % "2.0" % "provided",
+    "javax.servlet" % "servlet-api" % "2.5" % "provided"
 )
 
 // Test libraries
