@@ -22,25 +22,27 @@ import akka.dispatch.{Await, Future}
 import akka.actor.ActorSystem
 import java.net.URL
 import io.Source
-import monitoring._
 import akka.util.duration._
 
 class JournalTest extends FreeSpec with MustMatchers{
 
   trait X {
-    def callA(a: Int, b : String) : Unit
+    def callA(a: Int, b : String)(implicit journal : Journal) : Unit
     def callB(a: Seq[Int]) : Unit
   }
 
   class XClass extends X{
-    def callA(a: Int, b : String) = Thread.sleep(5)
+    def callA(a: Int, b : String)(implicit journal : Journal) = {
+      journal.info("some inside A")
+      Thread.sleep(5)
+    }
     def callB(a: Seq[Int]) = Thread.sleep(10)
   }
 
   implicit val system = ActorSystem("test")
 
   "Visual ok test" in {
-    val journal = Journal()
+    implicit val journal = Journal()
     val x = journal.traceClass[X](new XClass)
 
     journal("Sleep 2000", Future{ Thread.sleep(2000) })

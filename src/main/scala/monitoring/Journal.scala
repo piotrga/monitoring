@@ -3,7 +3,10 @@ package monitoring
 import atomic.Atomic
 import akka.dispatch.Future
 import java.lang.reflect.{InvocationTargetException, Method, InvocationHandler}
+import java.text.SimpleDateFormat
+import java.util.Date
 
+import scala.collection.JavaConversions._
 case class Timer(time : () => Long = () =>  System.currentTimeMillis()) {
   val start = time()
   def duration: Long = time() - start
@@ -30,65 +33,82 @@ case class ERROR(cause: Throwable) extends MsgType{
   override def details = Option(cause) map(_.toString) getOrElse ""
 }
 
-case class Msg(offset:Long, msg: String, typ: MsgType = INFO){
-  def mkString = "[%6d ms] %s %s %s" format (offset, typ.mkString, msg, typ.details)
+case class Msg(offset:Long, msg: String, typ: MsgType = INFO, stackFrame : Option[StackTraceElement] = None){
+  def mkString = {
+    val severity = if (typ.mkString.isEmpty) " " else " "+typ.mkString+" in: "
+    val res = "[%6d ms]%s%s %s" format(offset, severity, msg, typ.details)
+    stackFrame.map(f => res.padTo(100, " ").mkString + "at " + f.toString).getOrElse(res)
+  }
 }
 
 case class Journal() {
   private val timer = Timer()
   private val log = Atomic(Seq[Msg]())
-  private val unfinishedFutures = Atomic(Map[Future[_], (String, Timer)]())
+  private val unfinishedFutures = Atomic(Map[Future[_], (String, Timer, StackTraceElement)]())
 
-  def info(message: => String) {
+
+  def info(message: => String) { info(message, getStackFrame(2)) }
+
+  private def info(message: => String, stackFrame : Option[StackTraceElement]) {
     val duration = timer.duration
-    val msg = Msg(duration, message)
+    val msg = Msg(duration, message, stackFrame = stackFrame)
     append(msg)
   }
 
 
-  def error(message: => String, error : Throwable = null){
-    val msg = Msg(timer.duration, message, ERROR(error))
+
+  def error(message: => String, error : Throwable = null, stackFrame : Option[StackTraceElement] = getStackFrame(2)){
+    val msg = Msg(timer.duration, message, ERROR(error), stackFrame)
     append(msg)
   }
 
   def apply[T](description: String, future: => Future[T]): Future[T] ={
     val futureTimer = Timer(relativeTo = timer)
-    info("%s - future START" format description)
+    val stackFrame = getStackFrame(2)
+    info("%s  -  Future START" format description, stackFrame)
     val f = future
-    unfinishedFutures.update(m => m + (f -> (description, futureTimer)))
+    unfinishedFutures.update(m => m + (f -> (description, futureTimer, stackFrame.get)))
     f andThen {
-      case Left(ex) => error("%s - future FAILED after [%d ms]" format (description, futureTimer.duration), ex)
-      case Right(_) => info("%s - future DONE in [%d ms]" format(description, futureTimer.duration))
+      case Left(ex) => error("%s  -  Future FAILED after [%d ms]" format (description, futureTimer.duration), ex, stackFrame)
+      case Right(_) => info("%s  -  Future DONE in [%d ms]" format(description, futureTimer.duration), stackFrame)
     } andThen {
       case _ => unfinishedFutures.update( m => m - f )
     }
   }
 
-  def apply[T](description: String)(f: => T): T ={
+  def apply[T](description: String)(f: => T): T = wrapBlock(description, getStackFrame(2))(f)
+
+  private def wrapBlock[T](description: String, stackFrame : Option[StackTraceElement])(f: => T): T ={
+    info("%s - START" format description, stackFrame )
     val timer = Timer()
-    info("%s - START" format description)
     try{
       val res = f
-      info("%s - DONE in [%d ms]" format (description, timer.duration))
+      info("%s - DONE in [%d ms]" format (description, timer.duration), stackFrame)
       res
     }catch{
       case ex:Throwable =>
-        error("%s failed" format description, ex)
+        error("%s failed" format description, ex, stackFrame)
         throw ex
     }
   }
 
   private def append(msg: Msg) {
     log.update(log => msg +: log)
-//    println(msg)
+    //    println(msg)
   }
+
+  val df = new SimpleDateFormat("HH:mm:ss,SSS - dd MMM yyyy")
 
   def mkString = {
     val msgs = log.get()
     val unfinished = unfinishedFutures.get()
 
     val messages = msgs.reverse map (_.mkString) mkString ("\n\t")
-    "Log:\n\t%s\nUnfinished futures:\n\t%s\n" format (messages, unfinished.values.map{case (desc, timer) => "%s - started on [%d ms] [%d ms] ago" format (desc, timer.start, timer.duration)}.mkString("\n\t"))
+    val res = "Log(Started at %s):\n\t%s\n" format (df.format(new Date(timer.start)), messages)
+    if (unfinished.isEmpty)
+      res
+    else
+      res+"Unfinished futures:\n\t%s\n" format unfinished.values.map{case (desc, timer, frame) => "[%6d ms] %s - started [%d ms] ago at %s" format (timer.start, desc, timer.duration, frame )}.mkString("\n\t")
   }
 
 
@@ -96,7 +116,7 @@ case class Journal() {
     java.lang.reflect.Proxy.newProxyInstance(mf.erasure.getClassLoader, Array(mf.erasure.asInstanceOf[Class[T]]), new InvocationHandler {
       val targetName = target.getClass.getSimpleName.replaceAll("[^a-zA-Z]", "_")
       def invoke(p1: AnyRef, method: Method, args: Array[AnyRef]) = {
-        apply(targetName + "." + method.getName + "(...)") {
+        wrapBlock(targetName + "." + method.getName + "(...)", getStackFrame(3)) {
           try {
             method.invoke(target, args: _*)
           }
@@ -125,6 +145,14 @@ case class Journal() {
     }
   }
 
+  private def getStackFrame(i: Int): Some[StackTraceElement] ={
+    val res = Thread.currentThread().getStackTrace.drop(i+1)
+    Some(if(res(0).getClassName.startsWith("monitoring.package$")) // ugly hack to remove implicit conversion crap
+      res.drop(5)(0)
+    else
+      res(0)
+    )
+  }
 }
 
 class CheckedExceptionWrapper(msg : String, cause : Throwable) extends RuntimeException(msg, cause)
