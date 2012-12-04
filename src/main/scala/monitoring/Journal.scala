@@ -20,6 +20,29 @@ object Timer{
     val res = f
     (res, t.duration)
   }
+
+  def timeClass[T](target: T)(record : (String,Long) => Unit)(implicit mf: ClassManifest[T]): T = {
+    java.lang.reflect.Proxy.newProxyInstance(mf.erasure.getClassLoader, Array(mf.erasure.asInstanceOf[Class[T]]), new InvocationHandler {
+      val targetName = target.getClass.getSimpleName.replaceAll("[^a-zA-Z]", "_")
+      def invoke(p1: AnyRef, method: Method, args: Array[AnyRef]) = {
+          try {
+            val (res, duration) = time(method.invoke(target, args: _*))
+            try record(targetName + "." + method.getName + "(...)", duration) catch {case ignore => ()}
+            res
+          }
+          catch {
+            case ex: InvocationTargetException => {
+              ex.getTargetException match {
+                case e: RuntimeException => throw e
+                case e: Throwable if method.getExceptionTypes.contains(e.getClass) => throw e
+                case e: Throwable => throw new CheckedExceptionWrapper(e.getMessage, e)
+              }
+            }
+          }
+        }
+    }).asInstanceOf[T]
+  }
+
 }
 
 sealed trait MsgType{
