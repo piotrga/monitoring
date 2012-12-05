@@ -21,14 +21,27 @@ object Timer{
     (res, t.duration)
   }
 
+  def time[T]( f: => Future[T], record : Long => Unit) : Future[T]  ={
+    val t = Timer()
+    f andThen { case _ => try record(t.duration) catch {case ignore => ()}}
+  }
+
+
+  def time[T]( f: => T, record : Long => Unit) : T  ={
+    val (res, duration) = time(f)
+    try record(duration) catch {case ignore => ()}
+    res
+  }
+
   def timeClass[T](target: T)(record : (String, String, Long) => Unit)(implicit mf: ClassManifest[T]): T = {
     java.lang.reflect.Proxy.newProxyInstance(mf.erasure.getClassLoader, Array(mf.erasure.asInstanceOf[Class[T]]), new InvocationHandler {
       val targetName = target.getClass.getSimpleName
       def invoke(p1: AnyRef, method: Method, args: Array[AnyRef]) = {
           try {
-            val (res, duration) = time(method.invoke(target, args: _*))
-            try record(targetName, method.getName , duration) catch {case ignore => ()}
-            res
+            if (method.getReturnType.isAssignableFrom(classOf[Future[_]]))
+              time(method.invoke(target, args: _*).asInstanceOf[Future[Nothing]], record.curried(targetName)(method.getName))
+            else
+              time(method.invoke(target, args: _*), record.curried(targetName)(method.getName))
           }
           catch {
             case ex: InvocationTargetException => {
