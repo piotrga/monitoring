@@ -21,13 +21,13 @@ object Timer{
     (res, t.duration)
   }
 
-  def timeClass[T](target: T)(record : (String,Long) => Unit)(implicit mf: ClassManifest[T]): T = {
+  def timeClass[T](target: T)(record : (String, String, Long) => Unit)(implicit mf: ClassManifest[T]): T = {
     java.lang.reflect.Proxy.newProxyInstance(mf.erasure.getClassLoader, Array(mf.erasure.asInstanceOf[Class[T]]), new InvocationHandler {
-      val targetName = target.getClass.getSimpleName.replaceAll("[^a-zA-Z]", "_")
+      val targetName = target.getClass.getSimpleName
       def invoke(p1: AnyRef, method: Method, args: Array[AnyRef]) = {
           try {
             val (res, duration) = time(method.invoke(target, args: _*))
-            try record(targetName + "." + method.getName + "(...)", duration) catch {case ignore => ()}
+            try record(targetName, method.getName , duration) catch {case ignore => ()}
             res
           }
           catch {
