@@ -1,4 +1,4 @@
-import akka.dispatch.Future
+import concurrent.Future
 import java.io.{PrintStream, PrintWriter}
 import java.util.logging.{Level, Logger => JavaLogger}
 

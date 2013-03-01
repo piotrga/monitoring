@@ -18,11 +18,12 @@ package monitoring
 
 import org.scalatest.FreeSpec
 import org.scalatest.matchers.MustMatchers
-import akka.dispatch.{Await, Future}
 import akka.actor.ActorSystem
 import java.net.URL
 import io.Source
-import akka.util.duration._
+import concurrent.{Await, Future}
+import concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class JournalTest extends FreeSpec with MustMatchers{
 

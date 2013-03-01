@@ -2,8 +2,10 @@ package monitoring
 
 import org.scalatest.FreeSpec
 import org.scalatest.matchers.MustMatchers
-import akka.dispatch.Future
 import akka.actor.ActorSystem
+import concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+
 
 class TimerTest extends FreeSpec with MustMatchers{
   implicit val actorSystem = ActorSystem("test")

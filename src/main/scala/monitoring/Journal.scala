@@ -1,18 +1,22 @@
 package monitoring
 
 import atomic.Atomic
-import akka.dispatch.Future
 import java.lang.reflect.{InvocationTargetException, Method, InvocationHandler}
 import java.text.SimpleDateFormat
 import java.util.Date
 
 import scala.collection.JavaConversions._
+import concurrent.{ExecutionContext, Future}
+import util.{Success, Failure}
+import ExecutionContext.Implicits.global
+
 case class Timer(time : () => Long = () =>  System.currentTimeMillis()) {
   val start = time()
   def duration: Long = time() - start
 }
 
 object Timer{
+
   def apply(relativeTo : Timer) : Timer = Timer(()=> System.currentTimeMillis() - relativeTo.start)
 
   def time[T]( f: => T) : (T, Long)  ={
@@ -21,7 +25,7 @@ object Timer{
     (res, t.duration)
   }
 
-  def time[T]( f: => Future[T], record : Long => Unit) : Future[T]  ={
+  def time[T]( f: => Future[T], record : Long => Unit)(implicit exec : ExecutionContext) : Future[T]  ={
     val t = Timer()
     f andThen { case _ => try record(t.duration) catch {case ignore => ()}}
   }
@@ -105,8 +109,8 @@ case class Journal() {
     val f = future
     unfinishedFutures.update(m => m + (f -> (description, futureTimer, stackFrame.get)))
     f andThen {
-      case Left(ex) => error("%s  -  Future FAILED after [%d ms]" format (description, futureTimer.duration), ex, stackFrame)
-      case Right(_) => info("%s  -  Future DONE in [%d ms]" format(description, futureTimer.duration), stackFrame)
+      case Failure(ex) => error("%s  -  Future FAILED after [%d ms]" format (description, futureTimer.duration), ex, stackFrame)
+      case Success(_) => info("%s  -  Future DONE in [%d ms]" format(description, futureTimer.duration), stackFrame)
     } andThen {
       case _ => unfinishedFutures.update( m => m - f )
     }
