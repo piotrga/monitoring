@@ -27,7 +27,7 @@ class TimerTest extends FreeSpec with MustMatchers{
     x.sleep50()
     timings(0)._1 must be("X1.sleep")
     timings(0)._2 must be >=(10L)
-    timings(0)._2 must be <(12L)
+    timings(0)._2 must be <(15L)
     timings(1)._1 must be("X1.sleep50")
   }
 
