@@ -1,14 +1,14 @@
 ## Example usage:
 ```scala
     implicit val journal = Journal()
-    val allTogetger = for {
+    val allTogether = for {
       guardian <- Future{Source.fromInputStream(new URL("http://www.guardian.com").openStream())} as "Fetching guardian.com"
       bbc <- Future{Source.fromInputStream(new URL("http://www.bbc.co.uk").openStream())} as "Fetching bbc.co.uk"
       nytimes <- Future{Source.fromInputStream(new URL("http://www.nytimes.com").openStream())} as "Fetching nytimes.com"
     } yield(bbc.getLines().toList ++ guardian.getLines().toList ++ nytimes.getLines().toList)
 
     {
-      val lines = Await.result(allTogetger, 1100 millis)
+      val lines = Await.result(allTogether, 1100 millis)
       val linesWithObama = lines filter (_.contains("Obama")) mkString ("\n") as "Grepping lines"
       println(linesWithObama)
     } onErrorLog (System.err, "Grepping for 'Obama'")
